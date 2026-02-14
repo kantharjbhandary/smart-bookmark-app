@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 
 export default function BookmarkItem({ bookmark, onDelete }: any) {
 
-  // 🔥 SAFE hostname extraction
+  // SAFE hostname extraction
   let hostname = "";
   let favicon = "";
 
