@@ -10,7 +10,7 @@ export default function BookmarkForm() {
   const [loading, setLoading] = useState(false);
 
   const addBookmark = async () => {
-    if (!title || !url) {
+    if (!title.trim() || !url.trim()) {
       toast.error("Title and URL required");
       return;
     }
@@ -18,9 +18,10 @@ export default function BookmarkForm() {
     setLoading(true);
 
     try {
-      // ✅ GET SESSION SAFELY (works on Vercel + Local)
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
+      // ✅ GET SESSION (still needed for DB insert)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session) {
         toast.error("User not logged in");
@@ -28,18 +29,25 @@ export default function BookmarkForm() {
         return;
       }
 
-      // 🔥 EDGE FUNCTION VALIDATION
+      // 🔥 CALL EDGE FUNCTION (JWT disabled → no auth headers needed)
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/validate-url`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`, // ⭐ important
           },
-          body: JSON.stringify({ url }),
+          body: JSON.stringify({ url: url.trim() }),
         }
       );
+
+      // ⭐ SAFETY CHECK
+      if (!res.ok) {
+        console.error("Edge function error");
+        toast.error("Validation failed");
+        setLoading(false);
+        return;
+      }
 
       const data = await res.json();
       console.log("Edge response:", data);
@@ -53,8 +61,8 @@ export default function BookmarkForm() {
 
       // ✅ INSERT BOOKMARK
       const { error } = await supabase.from("bookmarks").insert({
-        title,
-        url,
+        title: title.trim(),
+        url: url.trim(),
         user_id: session.user.id,
       });
 
@@ -81,14 +89,14 @@ export default function BookmarkForm() {
       </h2>
 
       <input
-        className="bg-slate-800 border border-white/10 text-white p-2 w-full mb-3 rounded"
+        className="bg-slate-800 border border-white/10 text-white p-2 w-full mb-3 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
         placeholder="Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
       />
 
       <input
-        className="bg-slate-800 border border-white/10 text-white p-2 w-full mb-4 rounded"
+        className="bg-slate-800 border border-white/10 text-white p-2 w-full mb-4 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
         placeholder="https://example.com"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
@@ -97,7 +105,7 @@ export default function BookmarkForm() {
       <button
         onClick={addBookmark}
         disabled={loading}
-        className="w-full bg-indigo-600 hover:bg-indigo-500 transition text-white py-2 rounded-lg"
+        className="w-full bg-indigo-600 hover:bg-indigo-500 transition text-white py-2 rounded-lg font-semibold disabled:opacity-60"
       >
         {loading ? "Validating..." : "Add Bookmark"}
       </button>
