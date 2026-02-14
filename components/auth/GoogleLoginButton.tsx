@@ -4,16 +4,14 @@ import { supabase } from "../../lib/supabaseClient";
 
 export default function GoogleLoginButton() {
 
-  const login = async () => {
-
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    });
-
-  };
+const login = async () => {
+  await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/dashboard`
+    }
+  });
+};
 
   return (
     <button
