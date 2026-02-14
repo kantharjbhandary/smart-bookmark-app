@@ -18,50 +18,48 @@ export default function BookmarkForm() {
     setLoading(true);
 
     try {
-      // 🔥 CALL EDGE FUNCTION ONLY
+      // ✅ GET SESSION SAFELY (works on Vercel + Local)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
+
+      if (!session) {
+        toast.error("User not logged in");
+        setLoading(false);
+        return;
+      }
+
+      // 🔥 EDGE FUNCTION VALIDATION
       const res = await fetch(
-        "https://ajsgqpmjgrrjfkgbzkbt.supabase.co/functions/v1/validate-url",
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/validate-url`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            Authorization:
-              "Bearer " + process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            Authorization: `Bearer ${session.access_token}`, // ⭐ important
           },
           body: JSON.stringify({ url }),
         }
       );
 
       const data = await res.json();
-
       console.log("Edge response:", data);
 
-      // ❌ STOP HERE IF INVALID
+      // ❌ INVALID URL
       if (!data.valid) {
         toast.error("🚫 Invalid or unreachable website");
-        setLoading(false);
-        return; // ⭐ VERY IMPORTANT
-      }
-
-      // ✅ GET USER
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
-
-      if (!user) {
-        toast.error("User not logged in");
         setLoading(false);
         return;
       }
 
-      // ✅ INSERT ONLY IF EDGE VALID = TRUE
+      // ✅ INSERT BOOKMARK
       const { error } = await supabase.from("bookmarks").insert({
         title,
         url,
-        user_id: user.id,
+        user_id: session.user.id,
       });
 
       if (error) {
+        console.error(error);
         toast.error("Insert failed");
       } else {
         toast.success("✅ Bookmark added");
@@ -78,7 +76,6 @@ export default function BookmarkForm() {
 
   return (
     <div className="bg-slate-900 p-6 rounded-xl border border-white/10 shadow-lg">
-
       <h2 className="text-lg text-white mb-4 font-semibold">
         Add New Bookmark
       </h2>
