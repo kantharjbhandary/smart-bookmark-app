@@ -35,18 +35,20 @@ export default function BookmarkList() {
       supabase.removeChannel(channel);
     };
   }, []);
+return (
+  <div className="space-y-2">
+    {bookmarks.map((b) => (
+      <BookmarkItem
+        key={b.id}
+        bookmark={b}
+        onDelete={(id: number) =>
+          setBookmarks((prev) =>
+            prev.filter((item) => item.id !== id)
+          )
+        }
+      />
+    ))}
+  </div>
+);
 
-  return (
-    <div className="space-y-2">
-      {bookmarks.map((b) => (
-        <BookmarkItem
-          key={b.id}
-          bookmark={b}
-          onDelete={(id: string) =>
-            setBookmarks((prev) => prev.filter((item) => item.id !== id))
-          }
-        />
-      ))}
-    </div>
-  );
 }
