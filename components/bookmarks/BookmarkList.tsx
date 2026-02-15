@@ -11,44 +11,37 @@ export default function BookmarkList() {
     const { data, error } = await supabase
       .from("bookmarks")
       .select("*")
-      .order("created_at", { ascending: false }); 
+      .order("created_at", { ascending: false });
 
-    console.log("Bookmarks Data:", data);
-    console.log("Bookmarks Error:", error);
-
-    setBookmarks(data || []);
+    if (!error) {
+      setBookmarks(data || []);
+    }
   };
 
   useEffect(() => {
     fetchBookmarks();
 
-    const channel = supabase
-      .channel("realtime bookmarks")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "bookmarks" },
-        () => fetchBookmarks()
-      )
-      .subscribe();
+   
+    const interval = setInterval(() => {
+      fetchBookmarks();
+    }, 2000);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => clearInterval(interval);
   }, []);
-return (
-  <div className="space-y-2">
-    {bookmarks.map((b) => (
-      <BookmarkItem
-        key={b.id}
-        bookmark={b}
-        onDelete={(id: number) =>
-          setBookmarks((prev) =>
-            prev.filter((item) => item.id !== id)
-          )
-        }
-      />
-    ))}
-  </div>
-);
 
+  return (
+    <div className="space-y-2">
+      {bookmarks.map((b) => (
+        <BookmarkItem
+          key={b.id}
+          bookmark={b}
+          onDelete={(id: number) =>
+            setBookmarks((prev) =>
+              prev.filter((item) => item.id !== id)
+            )
+          }
+        />
+      ))}
+    </div>
+  );
 }
